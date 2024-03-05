@@ -95,6 +95,7 @@ class Influx:
         # Connect to InfluxDB
         try:
             self.client = InfluxDBClient(url=f"http://{self.host}:{self.port}", token=self.token, org=self.org)
+            self.create_bucket(self.bucket)
         except Exception as e:
             logging.error("connecting influx failed: %s", e)
 
@@ -107,6 +108,12 @@ class Influx:
             if bucket.name == bucket_name:
                 return True
         return False
+
+    def create_bucket(self, bucket_name):
+        if self.bucket_exists(bucket_name):
+            return
+
+        self.client.buckets_api().create_bucket(bucket_name = bucket_name)
 
     def load_last_values(self):
         if not self.bucket_exists(self.bucket):
