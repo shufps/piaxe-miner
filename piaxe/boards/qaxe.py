@@ -3,6 +3,7 @@ import threading
 import serial
 import time
 import binascii
+import os
 
 try:
     from . import coms_pb2
@@ -23,9 +24,27 @@ class QaxeHardware(board.Board):
         self.reqid = 0
         self.serial_port_ctrl_lock = threading.Lock()
 
+        serial = config.get("serial_number", None)
+        serial_port_asic = config.get("serial_port_asic", None)
+        serial_port_ctrl = config.get("serial_port_ctrl", None)
+
+        if serial:
+            path = f"/dev/serial/by-id/usb-Microengineer_Qaxe_{serial}-if"
+            try:
+                serial_port_asic = os.path.realpath(f"{path}00")
+                serial_port_ctrl = os.path.realpath(f"{path}02")
+            except Exception as e:
+                raise Exception(f"couldn't resolve path: %s", e)
+
+        if not serial_port_asic or not serial_port_ctrl:
+            raise Exception(f"serial ports not specified")
+
+        logging.info(f"serial_port_asic: {serial_port_asic}")
+        logging.info(f"serial_port_ctrl: {serial_port_ctrl}")
+
         # Initialize serial communication
         self._serial_port_asic = serial.Serial(
-            port=self.config['serial_port_asic'],  # For GPIO serial communication use /dev/ttyS0
+            port=serial_port_asic,  # For GPIO serial communication use /dev/ttyS0
             baudrate=115200,    # Set baud rate to 115200
             bytesize=serial.EIGHTBITS,     # Number of data bits
             parity=serial.PARITY_NONE,     # No parity
@@ -35,7 +54,7 @@ class QaxeHardware(board.Board):
 
         # Initialize serial communication
         self._serial_port_ctrl = serial.Serial(
-            port=self.config['serial_port_ctrl'],  # For GPIO serial communication use /dev/ttyS0
+            port=serial_port_ctrl,  # For GPIO serial communication use /dev/ttyS0
             baudrate=115200,    # Set baud rate to 115200
             bytesize=serial.EIGHTBITS,     # Number of data bits
             parity=serial.PARITY_NONE,     # No parity

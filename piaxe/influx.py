@@ -32,6 +32,7 @@ class Stats:
         self.blocks_found = 0
         self.total_blocks_found = 0
         self.duplicate_hashes = 0
+        self.nonce_found_by = []
 
         self.lock = threading.Lock()
 
@@ -102,6 +103,10 @@ class Influx:
                     .field("blocks_found", int(self.stats.blocks_found)) \
                     .field("difficulty", int(self.stats.difficulty)) \
                     .field("duplicate_hashes", int(self.stats.duplicate_hashes))
+
+                for chip, nonce_count in enumerate(self.nonce_found_by):
+                    point = point.tag(f"asic", chip).field(f"nonce_count_{chip}", nonce_count)
+
 
             for callback in self.callbacks:
                 callback(point)

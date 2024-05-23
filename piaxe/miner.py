@@ -174,6 +174,8 @@ class BM1366Miner:
 
         logging.info(f"{chip_counter} chips were found!")
 
+        self.stats.nonce_found_by = [0] * chip_counter
+
         self.set_difficulty(512)
         self.extranonce2_interval = self.config[self.miner]["extranonce2_interval"]
 
@@ -528,6 +530,9 @@ class BM1366Miner:
 
                         if duplicate:
                             self.stats.duplicate_hashes += 1
+
+                        if is_valid:
+                            self.stats.nonce_found_by[x_nonce] += 1
 
                         self.stats.invalid_shares += 1 if not is_valid else 0
                         self.stats.valid_shares += 1 if is_valid else 0
