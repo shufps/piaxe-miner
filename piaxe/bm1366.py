@@ -431,6 +431,8 @@ class BM1366:
         asic_result = AsicResult().from_bytes(asic_response_buffer)
         return asic_result
 
+    def try_get_temp_from_response(self, response : AsicResult):
+        return (None, None)
 
 
 class BM1368(BM1366):
@@ -513,3 +515,22 @@ class BM1368(BM1366):
         self.send(TYPE_CMD | GROUP_ALL | CMD_WRITE, [0x00, 0xA4, 0x90, 0x00, 0xFF, 0xFF])
 
         return chip_counter
+
+
+    def request_temps(self):
+        self.send_simple([0x55, 0xAA, 0x51, 0x09, 0x00, 0xB0, 0x80, 0x00, 0x00, 0x00, 0x0F])
+        self.send_simple([0x55, 0xAA, 0x51, 0x09, 0x00, 0xB0, 0x00, 0x02, 0x00, 0x00, 0x1F])
+        self.send_simple([0x55, 0xAA, 0x51, 0x09, 0x00, 0xB0, 0x01, 0x02, 0x00, 0x00, 0x16])
+        self.send_simple([0x55, 0xAA, 0x51, 0x09, 0x00, 0xB0, 0x10, 0x02, 0x00, 0x00, 0x1B])
+        self.send_simple([0x55, 0xAA, 0x52, 0x05, 0x00, 0xB4, 0x1B])
+
+    def try_get_temp_from_response(self, response : AsicResult):
+        # temp response has this pattern
+        # aa55 8000080c 00 b4 0000 1a
+        if response.nonce & 0x0000ffff == 0x00000080 and response.job_id == 0xb4:
+            value = (response.nonce & 0xff000000) >> 24 | (response.nonce & 0x00ff0000) >> 8
+            id = response.midstate_num // 2
+
+            return (value, id)
+
+        return (None, None)

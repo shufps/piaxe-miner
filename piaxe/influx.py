@@ -32,6 +32,10 @@ class Stats:
         self.blocks_found = 0
         self.total_blocks_found = 0
         self.duplicate_hashes = 0
+        self.asic_temp1 = None
+        self.asic_temp2 = None
+        self.asic_temp3 = None
+        self.asic_temp4 = None
 
         self.lock = threading.Lock()
 
@@ -101,7 +105,11 @@ class Influx:
                     .field("total_blocks_found", int(self.stats.total_blocks_found)) \
                     .field("blocks_found", int(self.stats.blocks_found)) \
                     .field("difficulty", int(self.stats.difficulty)) \
-                    .field("duplicate_hashes", int(self.stats.duplicate_hashes))
+                    .field("duplicate_hashes", int(self.stats.duplicate_hashes)) \
+                    .field("asic_temp1", int(self.stats.asic_temp1 or 0)) \
+                    .field("asic_temp2", int(self.stats.asic_temp2 or 0)) \
+                    .field("asic_temp3", int(self.stats.asic_temp3 or 0)) \
+                    .field("asic_temp4", int(self.stats.asic_temp4 or 0))
 
             for callback in self.callbacks:
                 callback(point)

@@ -64,7 +64,6 @@ class BM1366Miner:
         self._internal_id = 0
         self._latest_work_id = 0
         self._jobs = dict()
-        self._timestamp_last_chipid = 0
         self.last_response = time.time()
 
         self.tracker_send = list()
@@ -166,6 +165,11 @@ class BM1366Miner:
                 break
             except Exception as e:
                 logging.error("Attempt %d: Not enough chips found: %s", attempt + 1, e)
+
+                # only retry on 1368s
+                if not isinstance(self.asics, bm1366.BM1368):
+                    raise
+
                 if attempt < max_retries - 1:
                     time.sleep(1)  # Wait before the next attempt
                 else:
@@ -298,9 +302,12 @@ class BM1366Miner:
 
     def _monitor_temperature(self):
         while not self.stop_event.is_set():
+
             temp = self.hardware.read_temperature_and_voltage()
 
-            logging.info("temperature and voltage: %s", str(temp))
+            # trigger measurement of metrics
+            if isinstance(self.asics, bm1366.BM1368):
+                self.asics.request_temps()
 
             with self.stats.lock:
                 self.stats.temp = temp["temp"][0]
@@ -311,6 +318,18 @@ class BM1366Miner:
                 self.stats.vdomain2 = temp["voltage"][1]
                 self.stats.vdomain3 = temp["voltage"][2]
                 self.stats.vdomain4 = temp["voltage"][3]
+
+                # inject asic temps into the temp dict for display
+                temp['asic_temp'] = [
+                    self.stats.asic_temp1,
+                    self.stats.asic_temp2,
+                    self.stats.asic_temp3,
+                    self.stats.asic_temp4
+                ]
+
+            logging.info("temperature and voltage: %s", str(temp))
+
+
 
             for i in range(0, 4):
                 if temp["temp"][i] is not None and temp["temp"][i] > 70.0:
@@ -447,8 +466,15 @@ class BM1366Miner:
                 if not asic_result or not asic_result.nonce:
                     continue
 
-                if asic_result.nonce == 0x6613:
-                    self._timestamp_last_chipid = time.time()
+                # temperature response
+                (temp_value, temp_id) = self.asics.try_get_temp_from_response(asic_result)
+                if temp_value:
+                    logging.debug(f"temp for chip {temp_id}: {temp_value}")
+
+                    attribute_name = f"asic_temp{temp_id+1}"
+                    with self.stats.lock:
+                        setattr(self.stats, attribute_name, temp_value * 0.171342 - 299.5144)
+
                     continue
 
                 with self.job_lock:
@@ -641,4 +667,3 @@ class BM1366Miner:
 
 
             self.new_job_event.set()
-
