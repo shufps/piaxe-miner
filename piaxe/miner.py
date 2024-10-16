@@ -236,7 +236,7 @@ class BM1366Miner:
 
         rest_config = self.config.get("rest_api", None)
         if rest_config is not None and rest_config.get("enabled", False):
-            self.rest_api = rest.ASICFrequencyManager(rest_config, self)
+            self.rest_api = rest.RestAPI(rest_config, self, self.stats)
             self.rest_api.run()
 
 
