@@ -33,6 +33,20 @@ import os
 import datetime
 import yaml
 
+import threading, time, faulthandler, signal
+import logging
+
+def watchdog_thread():
+    while True:
+        time.sleep(60)
+        with open('thread_dump.log', 'a') as f:
+            faulthandler.dump_traceback(file=f)
+            f.write("\n---\n")
+
+watchdog = threading.Thread(target=watchdog_thread, daemon=True)
+watchdog.start()
+
+
 # Subscription state
 class Subscription(object):
   '''Encapsulates the Subscription state from the JSON-RPC server'''
